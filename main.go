@@ -7,14 +7,9 @@ import (
 	"strings"
 )
 
-type cliCommand struct {
-	name        string
-	description string
-	callback    func() error
-}
-
 func main() {
-
+	var config *Config
+	config = &Config{}
 	reader := bufio.NewReader(os.Stdin)
 	input := bufio.NewScanner(reader)
 
@@ -29,7 +24,7 @@ func main() {
 		words := cleanInput(text)
 		command, exists := getCommands()[words[0]]
 		if exists {
-			err := command.callback()
+			err := command.callback(config)
 			if err != nil {
 				fmt.Printf("Error while executing callback: %v\n", err)
 				continue
