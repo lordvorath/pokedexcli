@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/lordvorath/pokedexcli/internal/poke_api"
 )
@@ -19,6 +21,16 @@ func getCommands() map[string]cliCommand {
 			name:        "help",
 			description: "Displays a help message",
 			callback:    commandHelp,
+		},
+		"catch": {
+			name:        "catch <pokemon>",
+			description: "Attempt to catch a Pokemon and add it to your Pokedex",
+			callback:    commandCatch,
+		},
+		"inspect": {
+			name:        "inspect <pokemon>",
+			description: "Show details of a Pokemon in your Pokedex",
+			callback:    commandInspect,
 		},
 		"exit": {
 			name:        "exit",
@@ -111,14 +123,64 @@ func commandExplore(config *poke_api.Config, args []string) error {
 		return fmt.Errorf("missing argument <area_name> or too many arguments")
 	}
 	baseUrl := "https://pokeapi.co/api/v2/location-area/"
-	pokemonList, err := poke_api.GetExploredArea(baseUrl+args[0], config)
+	exploredLocation, err := poke_api.GetExploredArea(baseUrl+args[0], config)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Exploring %s...\n", args[0])
 	fmt.Println("Found Pokemon: ")
+	var pokemonList []string
+	for _, val := range exploredLocation.PokemonEncounters {
+		pokemonList = append(pokemonList, val.Pokemon.Name)
+	}
 	for _, pokemon := range pokemonList {
 		fmt.Println(pokemon)
 	}
 	return nil
+}
+
+func commandCatch(config *poke_api.Config, args []string) error {
+	if len(args) <= 0 || len(args) > 1 {
+		return fmt.Errorf("missing argument <pokemon> or too many arguments")
+	}
+	baseUrl := "https://pokeapi.co/api/v2/pokemon/"
+	pokemon, err := poke_api.GetPokemon(baseUrl+args[0], config)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Throwing a Pokeball at %v...\n", pokemon.Name)
+	if caught := catchPokemon(pokemon.BaseExperience); caught {
+		fmt.Printf("%v was caught!\n", pokemon.Name)
+		config.Pokedex[pokemon.Name] = pokemon
+	} else {
+		fmt.Printf("%v escaped!\n", pokemon.Name)
+	}
+	return nil
+}
+
+func catchPokemon(BaseExperience int) bool {
+	rng := rand.New(rand.NewSource(int64(time.Now().Unix())))
+	n := rng.Intn(BaseExperience)
+	catchThreshold := 5000 // TODO put back to 50 or so
+	// fmt.Printf("Rolled %d out of %d\n", n, catchThreshold)
+	return n <= catchThreshold
+}
+
+func commandInspect(config *poke_api.Config, args []string) error {
+	if pokemon, ok := config.Pokedex[args[0]]; !ok {
+		return fmt.Errorf("you have not caught that pokemon")
+	} else {
+		fmt.Printf("Name: %v\n", pokemon.Name)
+		fmt.Printf("Height: %v\n", pokemon.Height)
+		fmt.Printf("Weight: %v\n", pokemon.Weight)
+		fmt.Printf("Stats:\n")
+		for _, stat := range pokemon.Stats {
+			fmt.Printf("  -%v: %d\n", stat.Stat.Name, stat.BaseStat)
+		}
+		fmt.Printf("Types:\n")
+		for _, t := range pokemon.Types {
+			fmt.Printf("  -%v\n", t.Type.Name)
+		}
+		return nil
+	}
 }

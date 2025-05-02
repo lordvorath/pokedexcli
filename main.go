@@ -12,7 +12,12 @@ import (
 )
 
 func main() {
-	config := &poke_api.Config{Next: "", Previous: "", Cache: pokecache.NewCache(5 * time.Minute)}
+	config := &poke_api.Config{
+		Next:     "",
+		Previous: "",
+		Cache:    pokecache.NewCache(5 * time.Minute),
+		Pokedex:  make(map[string]poke_api.Pokemon),
+	}
 	reader := bufio.NewReader(os.Stdin)
 	input := bufio.NewScanner(reader)
 

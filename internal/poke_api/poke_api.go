@@ -2,6 +2,7 @@ package poke_api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -9,9 +10,11 @@ import (
 )
 
 type Config struct {
+	client   http.Client
 	Next     string
 	Previous string
 	Cache    *pokecache.Cache
+	Pokedex  map[string]Pokemon
 }
 
 func makeAPIRequest(url string, config *Config) ([]byte, error) {
@@ -43,24 +46,33 @@ func GetLocationAreas(url string, config *Config) (NamedAPIResourceList, error) 
 
 	err = json.Unmarshal(byteSlice, &mapList)
 	if err != nil {
-		return mapList, err
+		return mapList, fmt.Errorf("failed to unmarshal location list: %w", err)
 	}
 	return mapList, nil
 }
 
-func GetExploredArea(url string, config *Config) ([]string, error) {
-	var pokemonList []string
+func GetExploredArea(url string, config *Config) (LocationArea, error) {
 	var exploredLocation LocationArea
 	byteSlice, err := makeAPIRequest(url, config)
 	if err != nil {
-		return pokemonList, err
+		return exploredLocation, err
 	}
 	err = json.Unmarshal(byteSlice, &exploredLocation)
 	if err != nil {
-		return pokemonList, err
+		return exploredLocation, fmt.Errorf("failed to unmarshal location: %w", err)
 	}
-	for _, val := range exploredLocation.PokemonEncounters {
-		pokemonList = append(pokemonList, val.Pokemon.Name)
+	return exploredLocation, nil
+}
+
+func GetPokemon(url string, config *Config) (Pokemon, error) {
+	var pokemon Pokemon
+	byteSlice, err := makeAPIRequest(url, config)
+	if err != nil {
+		return pokemon, err
 	}
-	return pokemonList, nil
+	err = json.Unmarshal(byteSlice, &pokemon)
+	if err != nil {
+		return pokemon, fmt.Errorf("failed to unmarshal pokemon: %w", err)
+	}
+	return pokemon, nil
 }
