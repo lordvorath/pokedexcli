@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lordvorath/pokedexcli/internal/poke_api"
 	"github.com/lordvorath/pokedexcli/internal/pokecache"
 )
 
 func main() {
-	config := &Config{}
+	config := &poke_api.Config{Next: "", Previous: "", Cache: pokecache.NewCache(5 * time.Minute)}
 	reader := bufio.NewReader(os.Stdin)
 	input := bufio.NewScanner(reader)
-	cache := pokecache.NewCache(15 * time.Second)
 
 	for {
 		fmt.Print("Pokedex > ")
@@ -25,9 +25,10 @@ func main() {
 		}
 		text = input.Text()
 		words := cleanInput(text)
-		command, exists := getCommands()[words[0]]
+		commandWord, args := words[0], words[1:]
+		command, exists := getCommands()[commandWord]
 		if exists {
-			err := command.callback(config, cache)
+			err := command.callback(config, args)
 			if err != nil {
 				fmt.Printf("Error while executing callback: %v\n", err)
 				continue

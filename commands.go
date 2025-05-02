@@ -5,17 +5,12 @@ import (
 	"os"
 
 	"github.com/lordvorath/pokedexcli/internal/poke_api"
-	"github.com/lordvorath/pokedexcli/internal/pokecache"
 )
 
-type Config struct {
-	Next     string
-	Previous string
-}
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(config *Config, cache *pokecache.Cache) error
+	callback    func(config *poke_api.Config, args []string) error
 }
 
 func getCommands() map[string]cliCommand {
@@ -30,6 +25,11 @@ func getCommands() map[string]cliCommand {
 			description: "Exit the Pokedex",
 			callback:    commandExit,
 		},
+		"explore": {
+			name:        "explore <area_name>",
+			description: "Lists pokemon found in the chosen area",
+			callback:    commandExplore,
+		},
 		"map": {
 			name:        "map",
 			description: "Displays the next 20 locations in the Pokemon world",
@@ -43,13 +43,13 @@ func getCommands() map[string]cliCommand {
 	}
 }
 
-func commandExit(config *Config, cache *pokecache.Cache) error {
+func commandExit(config *poke_api.Config, args []string) error {
 	fmt.Print("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return fmt.Errorf("dalfhjlksdjflakhd")
 }
 
-func commandHelp(config *Config, cache *pokecache.Cache) error {
+func commandHelp(config *poke_api.Config, args []string) error {
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n\n")
 	for _, info := range getCommands() {
 		fmt.Printf("%v: %v\n", info.name, info.description)
@@ -57,7 +57,7 @@ func commandHelp(config *Config, cache *pokecache.Cache) error {
 	return nil
 }
 
-func commandMap(config *Config, cache *pokecache.Cache) error {
+func commandMap(config *poke_api.Config, args []string) error {
 	var url string
 	if config.Next == "" {
 		url = "https://pokeapi.co/api/v2/location-area/"
@@ -65,7 +65,7 @@ func commandMap(config *Config, cache *pokecache.Cache) error {
 		url = config.Next
 	}
 	// fmt.Println("Calling GetLocationAreas")
-	mapList, err := poke_api.GetLocationAreas(url, cache)
+	mapList, err := poke_api.GetLocationAreas(url, config)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func commandMap(config *Config, cache *pokecache.Cache) error {
 	return nil
 }
 
-func commandMapb(config *Config, cache *pokecache.Cache) error {
+func commandMapb(config *poke_api.Config, args []string) error {
 	var url string
 	if config.Previous == "" {
 		fmt.Println("you're on the first page")
@@ -90,7 +90,7 @@ func commandMapb(config *Config, cache *pokecache.Cache) error {
 	} else {
 		url = config.Previous
 	}
-	mapList, err := poke_api.GetLocationAreas(url, cache)
+	mapList, err := poke_api.GetLocationAreas(url, config)
 	if err != nil {
 		return err
 	}
@@ -102,6 +102,23 @@ func commandMapb(config *Config, cache *pokecache.Cache) error {
 	}
 	for _, location := range mapList.Results {
 		fmt.Println(location.Name)
+	}
+	return nil
+}
+
+func commandExplore(config *poke_api.Config, args []string) error {
+	if len(args) <= 0 || len(args) > 1 {
+		return fmt.Errorf("missing argument <area_name> or too many arguments")
+	}
+	baseUrl := "https://pokeapi.co/api/v2/location-area/"
+	pokemonList, err := poke_api.GetExploredArea(baseUrl+args[0], config)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Exploring %s...\n", args[0])
+	fmt.Println("Found Pokemon: ")
+	for _, pokemon := range pokemonList {
+		fmt.Println(pokemon)
 	}
 	return nil
 }
