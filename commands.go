@@ -19,37 +19,42 @@ func getCommands() map[string]cliCommand {
 	return map[string]cliCommand{
 		"help": {
 			name:        "help",
-			description: "Displays a help message",
+			description: "\t\t\tDisplays a help message",
 			callback:    commandHelp,
 		},
 		"catch": {
 			name:        "catch <pokemon>",
-			description: "Attempt to catch a Pokemon and add it to your Pokedex",
+			description: "\tAttempt to catch a Pokemon and add it to your Pokedex",
 			callback:    commandCatch,
 		},
 		"inspect": {
 			name:        "inspect <pokemon>",
-			description: "Show details of a Pokemon in your Pokedex",
+			description: "\tShow details of a Pokemon in your Pokedex",
 			callback:    commandInspect,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "\t\tList captured Pokemon that can be inspected",
+			callback:    commandPokedex,
 		},
 		"exit": {
 			name:        "exit",
-			description: "Exit the Pokedex",
+			description: "\t\t\tExit the Pokedex",
 			callback:    commandExit,
 		},
 		"explore": {
 			name:        "explore <area_name>",
-			description: "Lists pokemon found in the chosen area",
+			description: "\tLists pokemon found in the chosen area",
 			callback:    commandExplore,
 		},
 		"map": {
 			name:        "map",
-			description: "Displays the next 20 locations in the Pokemon world",
+			description: "\t\t\tDisplays the next 20 locations in the Pokemon world",
 			callback:    commandMap,
 		},
 		"mapb": {
 			name:        "mapb",
-			description: "Displays the previous 20 locations in the Pokemon world",
+			description: "\t\t\tDisplays the previous 20 locations in the Pokemon world",
 			callback:    commandMapb,
 		},
 	}
@@ -143,6 +148,9 @@ func commandCatch(config *poke_api.Config, args []string) error {
 	if len(args) <= 0 || len(args) > 1 {
 		return fmt.Errorf("missing argument <pokemon> or too many arguments")
 	}
+	if _, ok := config.Pokedex[args[0]]; ok {
+		return fmt.Errorf("you have already caught that pokemon")
+	}
 	baseUrl := "https://pokeapi.co/api/v2/pokemon/"
 	pokemon, err := poke_api.GetPokemon(baseUrl+args[0], config)
 	if err != nil {
@@ -152,6 +160,7 @@ func commandCatch(config *poke_api.Config, args []string) error {
 	if caught := catchPokemon(pokemon.BaseExperience); caught {
 		fmt.Printf("%v was caught!\n", pokemon.Name)
 		config.Pokedex[pokemon.Name] = pokemon
+		fmt.Println("You may now inspect it with the inspect command.")
 	} else {
 		fmt.Printf("%v escaped!\n", pokemon.Name)
 	}
@@ -183,4 +192,15 @@ func commandInspect(config *poke_api.Config, args []string) error {
 		}
 		return nil
 	}
+}
+
+func commandPokedex(config *poke_api.Config, args []string) error {
+	if len(config.Pokedex) < 1 {
+		return fmt.Errorf("you haven't caught any Pokemon")
+	}
+	fmt.Println("Your Pokedex:")
+	for _, pokemon := range config.Pokedex {
+		fmt.Printf("  -%s\n", pokemon.Name)
+	}
+	return nil
 }

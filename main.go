@@ -35,7 +35,7 @@ func main() {
 		if exists {
 			err := command.callback(config, args)
 			if err != nil {
-				fmt.Printf("Error while executing callback: %v\n", err)
+				fmt.Printf("Error while executing command: %v\n", err)
 				continue
 			}
 		} else {
