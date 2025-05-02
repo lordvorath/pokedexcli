@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/lordvorath/pokedexcli/internal/pokecache"
 )
 
 func main() {
-	var config *Config
-	config = &Config{}
+	config := &Config{}
 	reader := bufio.NewReader(os.Stdin)
 	input := bufio.NewScanner(reader)
+	cache := pokecache.NewCache(15 * time.Second)
 
 	for {
 		fmt.Print("Pokedex > ")
@@ -24,7 +27,7 @@ func main() {
 		words := cleanInput(text)
 		command, exists := getCommands()[words[0]]
 		if exists {
-			err := command.callback(config)
+			err := command.callback(config, cache)
 			if err != nil {
 				fmt.Printf("Error while executing callback: %v\n", err)
 				continue

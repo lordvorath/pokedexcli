@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"internal/poke_api"
+	"github.com/lordvorath/pokedexcli/internal/poke_api"
+	"github.com/lordvorath/pokedexcli/internal/pokecache"
 )
 
 type Config struct {
@@ -14,7 +15,7 @@ type Config struct {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(config *Config) error
+	callback    func(config *Config, cache *pokecache.Cache) error
 }
 
 func getCommands() map[string]cliCommand {
@@ -42,13 +43,13 @@ func getCommands() map[string]cliCommand {
 	}
 }
 
-func commandExit(config *Config) error {
+func commandExit(config *Config, cache *pokecache.Cache) error {
 	fmt.Print("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return fmt.Errorf("dalfhjlksdjflakhd")
 }
 
-func commandHelp(config *Config) error {
+func commandHelp(config *Config, cache *pokecache.Cache) error {
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n\n")
 	for _, info := range getCommands() {
 		fmt.Printf("%v: %v\n", info.name, info.description)
@@ -56,26 +57,32 @@ func commandHelp(config *Config) error {
 	return nil
 }
 
-func commandMap(config *Config) error {
+func commandMap(config *Config, cache *pokecache.Cache) error {
 	var url string
 	if config.Next == "" {
 		url = "https://pokeapi.co/api/v2/location-area/"
 	} else {
 		url = config.Next
 	}
-	mapList, err := poke_api.GetLocationAreas(url)
+	// fmt.Println("Calling GetLocationAreas")
+	mapList, err := poke_api.GetLocationAreas(url, cache)
 	if err != nil {
 		return err
 	}
-	config.Next = mapList.Next
-	config.Previous = mapList.Previous
+	// fmt.Println("Received mapList")
+	if mapList.Next != nil {
+		config.Next = *mapList.Next
+	}
+	if mapList.Previous != nil {
+		config.Previous = *mapList.Previous
+	}
 	for _, location := range mapList.Results {
 		fmt.Println(location.Name)
 	}
 	return nil
 }
 
-func commandMapb(config *Config) error {
+func commandMapb(config *Config, cache *pokecache.Cache) error {
 	var url string
 	if config.Previous == "" {
 		fmt.Println("you're on the first page")
@@ -83,12 +90,16 @@ func commandMapb(config *Config) error {
 	} else {
 		url = config.Previous
 	}
-	mapList, err := poke_api.GetLocationAreas(url)
+	mapList, err := poke_api.GetLocationAreas(url, cache)
 	if err != nil {
 		return err
 	}
-	config.Next = mapList.Next
-	config.Previous = mapList.Previous
+	if mapList.Next != nil {
+		config.Next = *mapList.Next
+	}
+	if mapList.Previous != nil {
+		config.Previous = *mapList.Previous
+	}
 	for _, location := range mapList.Results {
 		fmt.Println(location.Name)
 	}
